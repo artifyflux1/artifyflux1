@@ -5,6 +5,7 @@ from files.GenerateAudio.GenerateAudio import GenerateAudio
 from files.IncreaseFPS.IncreaseFPS import IncreaseFPS
 from files.ClipDurations.ClipDurations import ClipDurations
 from files.ChangeDuration.ChangeDuration import ChangeDuration
+from files.CompileVideo.CompileVideo import CompileVideo
 
 import re
 import os
@@ -67,6 +68,9 @@ def ChangeDurationWrapper():
 def IncreaseFPSWrapper2():
     return IncreaseFPS("output_4", "output_5")
 
+def CompileVideoWrapper():
+    return CompileVideo("output_5", "temp_output.mp4", "temp")
+
 # ==== Execute the chain ====
 
 run_chain([
@@ -76,6 +80,7 @@ run_chain([
     #GenerateAudioWrapper,
     #ClipDurationsWrapper,
     #IncreaseFPSWrapper1,
-    #ChangeDurationWrapper,
-    #IncreaseFPSWrapper2,
+    ChangeDurationWrapper,
+    IncreaseFPSWrapper2,
+    CompileVideoWrapper,
 ])

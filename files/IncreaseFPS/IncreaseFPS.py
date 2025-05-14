@@ -49,10 +49,10 @@ def process_single_video(input_path, output_path):
         # Precompute meshgrid
         x, y = np.meshgrid(np.arange(width), np.arange(height))
 
-        # Sharpening kernel for post-processing
-        sharpen_kernel = np.array([[0, -0.2, 0],
-                                   [-0.2, 1.8, -0.2],
-                                   [0, -0.2, 0]])
+        # Sharpening kernel for post-processing (less aggressive)
+        sharpen_kernel = np.array([[0, -0.1, 0],
+                                   [-0.1, 1.4, -0.1],
+                                   [0, -0.1, 0]])
 
         with tqdm(total=total_frames, desc=f"Processing {os.path.basename(input_path)}", leave=False) as pbar:
             pbar.update(1)
@@ -66,11 +66,11 @@ def process_single_video(input_path, output_path):
                 gray_prev = cv2.cvtColor(frame_prev, cv2.COLOR_BGR2GRAY)
                 gray_curr = cv2.cvtColor(frame_curr, cv2.COLOR_BGR2GRAY)
 
-                # Compute optical flow
+                # Compute optical flow with adjusted parameters
                 flow = cv2.calcOpticalFlowFarneback(
                     gray_prev, gray_curr, None,
-                    pyr_scale=0.7, levels=5, winsize=20,
-                    iterations=10, poly_n=7, poly_sigma=1.5,
+                    pyr_scale=0.7, levels=5, winsize=30,
+                    iterations=15, poly_n=7, poly_sigma=1.5,
                     flags=cv2.OPTFLOW_FARNEBACK_GAUSSIAN
                 )
 
@@ -80,16 +80,17 @@ def process_single_video(input_path, output_path):
                 map_x_backward = (x + 0.5 * flow[:, :, 0]).astype(np.float32)
                 map_y_backward = (y + 0.5 * flow[:, :, 1]).astype(np.float32)
 
-                # Apply high-quality warping
-                warped_prev = cv2.remap(frame_prev, map_x_forward, map_y_forward, cv2.INTER_CUBIC)
-                warped_curr = cv2.remap(frame_curr, map_x_backward, map_y_backward, cv2.INTER_CUBIC)
+                # Apply high-quality warping with border replication
+                warped_prev = cv2.remap(frame_prev, map_x_forward, map_y_forward, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
+                warped_curr = cv2.remap(frame_curr, map_x_backward, map_y_backward, cv2.INTER_CUBIC, borderMode=cv2.BORDER_REPLICATE)
 
                 # Blend frames
                 interpolated_frame = ((warped_prev.astype(float) + warped_curr.astype(float)) / 2).astype(np.uint8)
 
                 # Post-processing: blur to reduce artifacts, sharpen to restore detail
-                interpolated_frame = cv2.GaussianBlur(interpolated_frame, (3, 3), 0)
+                interpolated_frame = cv2.GaussianBlur(interpolated_frame, (5, 5), 0)
                 interpolated_frame = cv2.filter2D(interpolated_frame, -1, sharpen_kernel)
+                interpolated_frame = np.clip(interpolated_frame, 0, 255).astype(np.uint8)
 
                 # Write interpolated and current frame
                 writer.write(interpolated_frame)
