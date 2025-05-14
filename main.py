@@ -66,14 +66,17 @@ def IncreaseFPSWrapper1():
 def ChangeDurationWrapper():
     return ChangeDuration("clip_durations.txt", "output_3", "output_4")
 
+def EnhanceVideosWrapper1():
+    return EnhanceVideos("output_4", "output_5")
+
+def EnhanceVideosWrapper2():
+    return EnhanceVideos("output_5", "output_6")
+
 def IncreaseFPSWrapper2():
-    return IncreaseFPS("output_4", "output_5")
+    return IncreaseFPS("output_6", "output_7")
 
 def CompileVideoWrapper():
-    return CompileVideo("output_5", "temp_output.mp4", "temp")
-
-def EnhanceVideosWrapper():
-    return EnhanceVideos("temp", "temp_2")
+    return CompileVideo("output_7", "temp_output.mp4", "temp")
 
 # ==== Execute the chain ====
 
@@ -83,9 +86,8 @@ run_chain([
     #CropClipsWrapper,
     #GenerateAudioWrapper,
     #ClipDurationsWrapper,
-    #IncreaseFPSWrapper1,
-    #ChangeDurationWrapper,
-    #IncreaseFPSWrapper2,
-    #CompileVideoWrapper,
-    EnhanceVideosWrapper,
+    EnhanceVideosWrapper1,
+    EnhanceVideosWrapper2,
+    IncreaseFPSWrapper2,
+    CompileVideoWrapper,
 ])
