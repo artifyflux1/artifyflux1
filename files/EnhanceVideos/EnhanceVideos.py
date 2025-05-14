@@ -1,130 +1,95 @@
 import cv2
 import numpy as np
 import os
-from concurrent.futures import ProcessPoolExecutor
 
-# --- Interpolation Functions (same as before) ---
-def horizontal_interpolation(img: np.ndarray) -> np.ndarray:
-    img_float = img.astype(np.float32)
-    height, width, ch = img_float.shape
-    new_width = 2 * width - 1
-    new_img = np.zeros((height, new_width, ch), dtype=np.float32)
+def upscale_frame(frame, scale=2):
+    return cv2.resize(frame, (frame.shape[1]*scale, frame.shape[0]*scale), interpolation=cv2.INTER_CUBIC)
 
-    new_img[:, ::2] = img_float
-    new_img[:, 1::2] = (img_float[:, :-1] + img_float[:, 1:]) / 2  # Proper averaging
+def sharpen_frame(frame):
+    kernel = np.array([[0, -1, 0],
+                       [-1, 5, -1],
+                       [0, -1, 0]])
+    return cv2.filter2D(frame, -1, kernel)
 
-    return np.clip(new_img, 0, 255).astype(np.uint8)
+def enhance_contrast(frame):
+    lab = cv2.cvtColor(frame, cv2.COLOR_BGR2LAB)
+    l, a, b = cv2.split(lab)
+    clahe = cv2.createCLAHE(clipLimit=3.0, tileGridSize=(8, 8))
+    cl = clahe.apply(l)
+    limg = cv2.merge((cl, a, b))
+    return cv2.cvtColor(limg, cv2.COLOR_LAB2BGR)
 
-def vertical_interpolation(img: np.ndarray) -> np.ndarray:
-    img_float = img.astype(np.float32)
-    height, width, ch = img_float.shape
-    new_height = 2 * height - 1
-    new_img = np.zeros((new_height, width, ch), dtype=np.float32)
+def denoise_frame(frame):
+    return cv2.fastNlMeansDenoisingColored(frame, None, 10, 10, 7, 21)
 
-    new_img[::2] = img_float
-    new_img[1::2] = (img_float[:-1] + img_float[1:]) / 2
+def enhance_frame(frame):
+    frame = upscale_frame(frame)
+    frame = enhance_contrast(frame)
+    frame = sharpen_frame(frame)
+    frame = denoise_frame(frame)
+    return frame
 
-    return np.clip(new_img, 0, 255).astype(np.uint8)
+def process_video(input_path, output_path):
+    cap = cv2.VideoCapture(input_path)
+    if not cap.isOpened():
+        print(f"❌ Error: Could not open video {input_path}.")
+        return False
 
-# --- Edge Enhancement Function ---
-def edge_enhance_in_memory(img: np.ndarray) -> np.ndarray:
-    kernel = np.array([[-1, -1, -1, -1, -1],
-                       [-1,  2,  2,  2, -1],
-                       [-1,  2,  8,  2, -1],
-                       [-1,  2,  2,  2, -1],
-                       [-1, -1, -1, -1, -1]], dtype=np.float32) / 8.0
-    return cv2.filter2D(img, -1, kernel)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)) * 2
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) * 2
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
 
-# --- Denoising Function ---
-def denoise_frame(frame: np.ndarray) -> np.ndarray:
-    return cv2.fastNlMeansDenoisingColored(frame, None, 7, 7, 7, 21)
+    # Ensure the directory exists for output
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    out = cv2.VideoWriter(output_path, fourcc, fps, (width, height))
 
-# --- Video Processing Function ---
-def process_single_video(args):
-    input_path, output_path = args
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    print(f"🚀 Enhancing: {os.path.basename(input_path)} ({total_frames} frames)...")
+
+    frame_count = 0
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        enhanced = enhance_frame(frame)
+        out.write(enhanced)
+
+        frame_count += 1
+        if frame_count % 10 == 0:
+            print(f"  ➤ {frame_count}/{total_frames} frames done")
+
+    cap.release()
+    out.release()
+    print(f"✅ Saved enhanced video to: {output_path}")
+    return True
+
+def EnhanceVideos(input_video_folder_string, output_video_folder_string):
     try:
-        cap = cv2.VideoCapture(input_path)
-        if not cap.isOpened():
-            raise ValueError(f"Could not open video: {input_path}")
+        input_folder = os.path.abspath(input_video_folder_string)
+        output_folder = os.path.abspath(output_video_folder_string)
+        print(f"🔍 Input folder: {input_folder}")
+        print(f"📁 Output folder: {output_folder}")
 
-        # Get video properties
-        width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-        height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        fps = cap.get(cv2.CAP_PROP_FPS)
-        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-
-        # Compute new dimensions
-        new_width = 2 * width - 1
-        new_height = 2 * height - 1
-
-        # Set up VideoWriter
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps, (new_width, new_height))
-
-        frame_count = 0
-        while cap.isOpened():
-            ret, frame = cap.read()
-            if not ret:
-                break
-
-            # Apply enhancement pipeline
-            interpolated = horizontal_interpolation(frame)
-            interpolated = vertical_interpolation(interpolated)
-            denoised = denoise_frame(interpolated)
-            enhanced = edge_enhance_in_memory(denoised)
-
-            # Write enhanced frame
-            out.write(enhanced)
-            frame_count += 1
-
-        cap.release()
-        out.release()
-
-        print(f"Processed {frame_count}/{total_frames} frames from '{input_path}'")
-        return True, None
-
-    except Exception as e:
-        return False, str(e)
-
-# --- Main Function for Video Batch Processing ---
-def EnhanceVideos(input_folder: str, output_folder: str) -> bool:
-    try:
         if not os.path.exists(input_folder):
-            print(f"Input folder '{input_folder}' not found.")
+            print("❌ Error: Input folder does not exist.")
             return False
 
         os.makedirs(output_folder, exist_ok=True)
 
-        # Find all video files
-        valid_extensions = ('.mp4', '.avi', '.mov', '.mkv', '.wmv', '.flv')
-        video_files = [
-            f for f in os.listdir(input_folder)
-            if f.lower().endswith(valid_extensions)
-        ]
-
+        video_files = [f for f in os.listdir(input_folder) if f.endswith(('.mp4', '.avi', '.mov'))]
         if not video_files:
-            print("No valid video files found in input folder.")
+            print("❌ No supported video files found in the input folder.")
             return False
 
-        args_list = []
-        for filename in video_files:
-            input_path = os.path.join(input_folder, filename)
-            output_name = os.path.splitext(filename)[0] + ".mp4"
-            output_path = os.path.join(output_folder, output_name)
-            args_list.append((input_path, output_path))
+        for video_file in video_files:
+            input_path = os.path.join(input_folder, video_file)
+            output_path = os.path.join(output_folder, video_file)
 
-        # Process videos in parallel
-        with ProcessPoolExecutor() as executor:
-            results = list(executor.map(process_single_video, args_list))
+            if not process_video(input_path, output_path):
+                return False
 
-        all_success = True
-        for success, error in results:
-            if not success:
-                print(f"Error: {error}")
-                all_success = False
-
-        return all_success
-
+        return True
     except Exception as e:
-        print(f"Critical error during processing: {str(e)}")
+        print(f"❌ Exception: {str(e)}")
         return False
