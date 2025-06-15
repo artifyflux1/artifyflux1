@@ -1,58 +1,41 @@
+import re
 import os
-import shutil
-import time
-from gradio_client import Client, handle_file
+from files.GeneratePrompts import GeneratePrompts
+from files.ExtractPrompts import ExtractPrompts
 
-# Load list of proxies from file
-with open("proxies.txt", "r") as f:
-    proxies = [line.strip() for line in f if line.strip()]
+HF_TOKEN_1 = ""
 
-result = None
-client = None
+# ===============================
 
-# Try each proxy in sequence
-for proxy in proxies:
-    try:
-        # Set proxy environment variables
-        os.environ['HTTP_PROXY'] = proxy
-        os.environ['HTTPS_PROXY'] = proxy
+def read_file_as_string(filename):
+    with open(filename, 'r', encoding='utf-8') as file:
+        return file.read()
 
-        print(f"Trying proxy: {proxy}")
+def run_chain(functions):
+    for func in functions:
+        result = func()
 
-        # Initialize client inside the loop to ensure new connection with proxy
-        client = Client("multimodalart/wan2-1-fast")
+        # If function returns a bool, respect it
+        if isinstance(result, bool):
+            if not result:
+                print(f"{func.__name__} failed. Halting chain.")
+                return
+        else:
+            # Void function or other return types are treated as success
+            continue
 
-        result = client.predict(
-            input_image=handle_file('assets/influencer.png'),
-            prompt="girl smiling and gaming, smooth head tilt and blinking, hands moving on controller, slow cinematic camera pan, cozy pink room lighting",
-            height=1152,
-            width=640,
-            negative_prompt="blurry, distorted face, low quality, flickering, overexposed, motion blur, artifacts, extra limbs, deformed hands",
-            duration_seconds=3.5,
-            guidance_scale=1,
-            steps=4,
-            seed=42,
-            randomize_seed=True,
-            api_name="/generate_video"
-        )
+# ==== Wrapper Functions ====
 
-        print("Request succeeded with proxy:", proxy)
-        break  # Exit loop if successful
+def GeneratePromptsWrapper():
+    prompt_script = read_file_as_string("script.txt")
+    return GeneratePrompts(HF_TOKEN_1, prompt_script, "temp.txt")
 
-    except Exception as e:
-        print(f"Proxy {proxy} failed with error: {e}")
-        time.sleep(2)  # Optional delay before retrying
+def ExtractPromptsWrapper():
+    return ExtractPrompts("temp.txt", "prompts.txt")
 
-    finally:
-        # Clean up proxy environment variables
-        os.environ.pop('HTTP_PROXY', None)
-        os.environ.pop('HTTPS_PROXY', None)
+# ==== Execute the chain ====
 
-# Handle final outcome
-if result is None:
-    print("All proxies failed. Could not generate video.")
-else:
-    video_path = result[0]['video']
-    destination_path = os.path.join(os.getcwd(), "result.mp4")
-    shutil.copy(video_path, destination_path)
-    print(f"Video saved to: {destination_path}")
+run_chain([
+    #GeneratePromptsWrapper,
+    ExtractPromptsWrapper,
+])
