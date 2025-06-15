@@ -1,93 +1,58 @@
-from files.VideoPrompts.VideoPrompts import VideoPrompts
-from files.GenerateVideos.GenerateVideos import GenerateVideos
-from files.CropClips.CropClips import CropClips
-from files.GenerateAudio.GenerateAudio import GenerateAudio
-from files.IncreaseFPS.IncreaseFPS import IncreaseFPS
-from files.ClipDurations.ClipDurations import ClipDurations
-from files.ChangeDuration.ChangeDuration import ChangeDuration
-from files.CompileVideo.CompileVideo import CompileVideo
-from files.EnhanceVideos.EnhanceVideos import EnhanceVideos
-
-import re
 import os
-import sys
+import shutil
+import time
+from gradio_client import Client, handle_file
 
-HF_TOKEN_1 = ""
-HF_TOKEN_2 = ""
-HF_TOKEN_3 = ""
-EL_API_KEY = ""
+# Load list of proxies from file
+with open("proxies.txt", "r") as f:
+    proxies = [line.strip() for line in f if line.strip()]
 
-# ===============================
+result = None
+client = None
 
-def count_sentences(filename):
-    with open(filename, 'r') as file:
-        text = file.read().replace('\n', ' ')
-    sentence_endings = re.findall(r'[.!?]+(?=\s+|$)', text)
-    return len(sentence_endings)
+# Try each proxy in sequence
+for proxy in proxies:
+    try:
+        # Set proxy environment variables
+        os.environ['HTTP_PROXY'] = proxy
+        os.environ['HTTPS_PROXY'] = proxy
 
-def run_chain(functions):
-    for func in functions:
-        result = func()
+        print(f"Trying proxy: {proxy}")
 
-        # If function returns a bool, respect it
-        if isinstance(result, bool):
-            if not result:
-                print(f"{func.__name__} failed. Halting chain.")
-                return
-        else:
-            # Void function or other return types are treated as success
-            continue
+        # Initialize client inside the loop to ensure new connection with proxy
+        client = Client("multimodalart/wan2-1-fast")
 
-# ==== Wrapper Functions ====
+        result = client.predict(
+            input_image=handle_file('assets/influencer.png'),
+            prompt="girl smiling and gaming, smooth head tilt and blinking, hands moving on controller, slow cinematic camera pan, cozy pink room lighting",
+            height=1152,
+            width=640,
+            negative_prompt="blurry, distorted face, low quality, flickering, overexposed, motion blur, artifacts, extra limbs, deformed hands",
+            duration_seconds=3.5,
+            guidance_scale=1,
+            steps=4,
+            seed=42,
+            randomize_seed=True,
+            api_name="/generate_video"
+        )
 
-def VideoPromptsWrapper():
-    with open("script.txt", "r") as file:
-        script = file.read()
-    sentence_num = count_sentences("script.txt")
-    return VideoPrompts(script, HF_TOKEN_1, sentence_num)
+        print("Request succeeded with proxy:", proxy)
+        break  # Exit loop if successful
 
-def GenerateVideosWrapper():
-    return GenerateVideos("video_generator_prompts.txt", "output_1", HF_TOKEN_1, HF_TOKEN_2, HF_TOKEN_3)
+    except Exception as e:
+        print(f"Proxy {proxy} failed with error: {e}")
+        time.sleep(2)  # Optional delay before retrying
 
-def CropClipsWrapper():
-    return CropClips("output_1", "output_2")
+    finally:
+        # Clean up proxy environment variables
+        os.environ.pop('HTTP_PROXY', None)
+        os.environ.pop('HTTPS_PROXY', None)
 
-def GenerateAudioWrapper():
-    with open("script.txt", "r") as file:
-        script = file.read()
-    return GenerateAudio(script, EL_API_KEY, "audio.mp3")
-
-def ClipDurationsWrapper():
-    return ClipDurations("audio.mp3", "clip_durations.txt")
-
-def IncreaseFPSWrapper1():
-    return IncreaseFPS("output_2", "output_3")
-
-def ChangeDurationWrapper():
-    return ChangeDuration("clip_durations.txt", "output_3", "output_4")
-
-def EnhanceVideosWrapper1():
-    return EnhanceVideos("output_4", "output_5")
-
-def EnhanceVideosWrapper2():
-    return EnhanceVideos("output_5", "output_6")
-
-def IncreaseFPSWrapper2():
-    return IncreaseFPS("output_6", "output_7")
-
-def CompileVideoWrapper():
-    return CompileVideo("output_7", "temp_output.mp4", "temp")
-
-# ==== Execute the chain ====
-
-run_chain([
-    #VideoPromptsWrapper,
-    #GenerateVideosWrapper,
-    #CropClipsWrapper,
-    #GenerateAudioWrapper,
-    #ClipDurationsWrapper,
-    EnhanceVideosWrapper1,
-    EnhanceVideosWrapper2,
-    IncreaseFPSWrapper2,
-    CompileVideoWrapper,
-])
+# Handle final outcome
+if result is None:
+    print("All proxies failed. Could not generate video.")
+else:
+    video_path = result[0]['video']
+    destination_path = os.path.join(os.getcwd(), "result.mp4")
+    shutil.copy(video_path, destination_path)
+    print(f"Video saved to: {destination_path}")
