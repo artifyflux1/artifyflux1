@@ -3,6 +3,7 @@ import time
 from gradio_client import Client
 import requests
 import re
+import xml.etree.ElementTree as ET
 
 def GenerateImage(proxy_file, image_prompt, output_image_name):
     try:
@@ -48,6 +49,11 @@ def GenerateImage(proxy_file, image_prompt, output_image_name):
             if response.status_code != 200:
                 raise Exception(f"Failed to download image. HTTP status: {response.status_code}")
 
+            # Ensure the output directory exists
+            dir_name = os.path.dirname(output_image_name)
+            if dir_name:
+                os.makedirs(dir_name, exist_ok=True)
+
             # Save the image to disk
             with open(output_image_name, "wb") as f:
                 f.write(response.content)
@@ -68,96 +74,71 @@ def GenerateImage(proxy_file, image_prompt, output_image_name):
     print("All proxies failed. Could not complete the request.")
     return False
 
-current_index = 0
-
-def ExtractPrompt(file_path):
+def ImageGen(prompts_file, proxy_file, output_image_folder):
     """
-    Extracts the content between the nth <image_generator_prompt> and </image_generator_prompt> tags
-    from the specified file. Each call returns the next prompt in sequence.
+    Generates images for each sentence in the XML file by extracting the image generator prompt
+    and calling the GenerateImage function. Returns True if all images are successfully generated,
+    False otherwise.
 
-    Parameters:
-        file_path (str): Path to the text file containing the prompts.
-
-    Returns:
-        str: The content of the nth <image_generator_prompt> block.
-
-    Raises:
-        IndexError: If there are no more prompts to return.
-        FileNotFoundError: If the specified file does not exist.
-        Exception: For other unexpected errors.
+    :param prompts_file: Path to the XML file containing image prompts.
+    :param proxy_file: Proxy file to be used by GenerateImage.
+    :param output_image_folder: Folder where the generated images will be saved.
+    :return: Boolean indicating success or failure.
     """
-    global current_index
 
+    # Attempt to parse the XML file
     try:
-        # Read the file content
-        with open(file_path, 'r', encoding='utf-8') as file:
-            text = file.read()
+        tree = ET.parse(prompts_file)
+        root = tree.getroot()
+    except (ET.ParseError, FileNotFoundError, IOError):
+        return False
 
-        # Compile regex pattern once per call
-        prompt_pattern = re.compile(
-            r'<image_generator_prompt>(.*?)</image_generator_prompt>',
-            re.DOTALL
-        )
+    # Ensure the output directory exists
+    try:
+        os.makedirs(output_image_folder, exist_ok=True)
+    except OSError:
+        return False
 
-        # Extract all prompts
-        prompts = prompt_pattern.findall(text)
+    # Iterate through each sentence in the XML
+    for sentence_element in root:
+        if not sentence_element.tag.startswith('sentence_'):
+            continue  # Skip non-sentence elements
 
-        # Check if index is within bounds
-        if current_index >= len(prompts):
-            raise IndexError("No more prompts available in the file.")
+        # Extract sentence number from the tag name
+        parts = sentence_element.tag.split('_')
+        if len(parts) != 2:
+            return False  # Invalid tag format
+        try:
+            sentence_num = int(parts[1])
+        except ValueError:
+            return False  # Non-numeric suffix
 
-        # Return the current prompt and increment the index
-        prompt = prompts[current_index].strip()
-        current_index += 1
-        return prompt
+        # Find the image generator prompt
+        prompt_elem = sentence_element.find('image_generator_prompt')
+        if prompt_elem is None or not prompt_elem.text or prompt_elem.text.strip() == '':
+            return False  # Missing or empty prompt
 
-    except FileNotFoundError:
-        raise FileNotFoundError(f"The file at path '{file_path}' was not found.")
-    except Exception as e:
-        raise Exception(f"An error occurred while reading the file: {e}")
+        image_prompt = prompt_elem.text.strip()
 
-def TotalSentences(input_file_path):
-    """
-    Counts the number of <sentence_n> opening tags in the given input file.
+        # Construct the output image path
+        output_image_name = f"image_{sentence_num}.png"
+        full_output_path = os.path.join(output_image_folder, output_image_name)
 
-    Parameters:
-        input_file_path (str): Path to the input file containing XML-like data.
+        # Call the image generation function
+        success = GenerateImage(proxy_file, image_prompt, full_output_path)
 
-    Returns:
-        int: The total number of <sentence_n> tags found.
-    """
-    count = 0
+        if not success:
+            return False  # Stop on first failure
 
-    with open(input_file_path, 'r', encoding='utf-8') as file:
-        for line in file:
-            stripped_line = line.strip()
-            if stripped_line.startswith('<sentence_') and stripped_line.endswith('>') and not stripped_line.startswith('</sentence_'):
-                count += 1
+    return True  # All images were generated successfully
 
-    return count
+success = ImageGen(
+    prompts_file="../prompts.txt",
+    proxy_file="../proxies.txt",
+    output_image_folder="assets/output/images"
+)
 
-def generate_image(proxy_file_path, image_generation_prompt, output_image_name) -> bool:
-    print(proxy_file_path)
-    print(image_generation_prompt)
-    print(output_image_name)
-    return True
-
-def generate_images(proxy_file_path: str, input_file_path_prompts: str) -> bool:
-    sentences_number = TotalSentences(input_file_path_prompts)
-    current_loop_index = 0
-
-    while current_loop_index <= sentences_number:
-        image_generation_prompt = ExtractPrompt(input_file_path_prompts)
-        output_image_name = f"image_{current_loop_index}.png"
-        status = generate_image(proxy_file_path, image_generation_prompt, output_image_name)
-
-        if not status:
-            return status  # False
-
-        current_loop_index += 1
-
-    return True
-
-proxy_file_path_now = '../proxies.txt'
-input_file_path_right_now = '../prompts.txt'
-print(generate_images(proxy_file_path_now, input_file_path_right_now))
+if success:
+    print("All images were successfully generated.")
+else:
+    print("An error occurred during image generation.")
