@@ -2,6 +2,7 @@ import re
 import os
 from files.GeneratePrompts import GeneratePrompts
 from files.ExtractPrompts import ExtractPrompts
+from files.GenerateImages import ImageGen
 
 HF_TOKEN_1 = ""
 
@@ -33,9 +34,13 @@ def GeneratePromptsWrapper():
 def ExtractPromptsWrapper():
     return ExtractPrompts("temp.txt", "prompts.txt")
 
+def GenerateImagesWrapper():
+    return ImageGen("prompts.txt", "generated_images")
+
 # ==== Execute the chain ====
 
 run_chain([
     #GeneratePromptsWrapper,
-    ExtractPromptsWrapper,
+    #ExtractPromptsWrapper,
+    GenerateImagesWrapper,
 ])

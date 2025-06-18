@@ -8,6 +8,7 @@ import random
 from stem import Signal
 from stem.control import Controller
 from gradio_client import Client, handle_file
+import xml.etree.ElementTree as ET
 
 # where Gradio dumps its temp images
 TMP_DIR = os.path.join(os.path.sep, "tmp", "gradio")
@@ -153,3 +154,66 @@ def GenerateImage(user_prompt: str, output_image: str):
             print(f"❌ Generation/saving error: {e}")
             # try a fresh IP next iteration
             change_ip()
+
+# Declare the loop for generating all the images
+
+def ImageGen(prompts_file: str, output_image_folder: str) -> bool:
+    """
+    Reads an XML-like prompts file, extracts each <image_generator_prompt> under
+    <sentence_{n}> elements, and generates an image for each sentence by calling
+    GenerateImage(user_prompt, output_image). Images are saved in output_image_folder
+    as image_<sentence_number>.png.
+
+    Returns True if all images were generated successfully, False otherwise.
+    """
+    try:
+        # Parse the prompts XML file
+        tree = ET.parse(prompts_file)
+        root = tree.getroot()
+    except (ET.ParseError, FileNotFoundError, OSError) as e:
+        # Failed to read/parse the file
+        print(f"Error reading prompts file: {e}")
+        return False
+
+    # Ensure the output directory exists
+    try:
+        os.makedirs(output_image_folder, exist_ok=True)
+    except OSError as e:
+        print(f"Error creating output directory: {e}")
+        return False
+
+    # Iterate over each sentence element
+    for sentence_elem in root:
+        tag = sentence_elem.tag  # e.g. "sentence_1", "sentence_2", etc.
+        if not tag.startswith("sentence_"):
+            # Skip any unexpected tags
+            continue
+
+        # Extract the sentence number
+        try:
+            sentence_number = int(tag.split("_", 1)[1])
+        except (IndexError, ValueError):
+            print(f"Skipping element with invalid tag: {tag}")
+            continue
+
+        # Find the image generator prompt
+        prompt_elem = sentence_elem.find("image_generator_prompt")
+        if prompt_elem is None or not prompt_elem.text:
+            print(f"No <image_generator_prompt> found for {tag}, skipping.")
+            continue
+
+        user_prompt = prompt_elem.text.strip()
+        # Construct the output image path, e.g. "/path/to/output/image_1.png"
+        output_filename = f"image_{sentence_number}.png"
+        output_path = os.path.join(output_image_folder, output_filename)
+
+        try:
+            # Call the existing void function to generate and save the image
+            GenerateImage(user_prompt, output_path)
+        except Exception as e:
+            # If any error occurs during image generation, abort
+            print(f"Error generating image for {tag}: {e}")
+            return False
+
+    # If we reach here, all prompts have been processed successfully
+    return True
