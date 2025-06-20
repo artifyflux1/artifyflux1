@@ -46,5 +46,6 @@ def VideoGenWrapper():
 run_chain([
     #GeneratePromptsWrapper,
     #ExtractPromptsWrapper,
-    GenerateImagesWrapper,
+    #GenerateImagesWrapper,
+    VideoGenWrapper,
 ])
