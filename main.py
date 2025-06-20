@@ -3,6 +3,7 @@ import os
 from files.GeneratePrompts import GeneratePrompts
 from files.ExtractPrompts import ExtractPrompts
 from files.GenerateImages import ImageGen
+from files.GenerateVideos import VideoGen
 
 HF_TOKEN_1 = ""
 
@@ -36,6 +37,9 @@ def ExtractPromptsWrapper():
 
 def GenerateImagesWrapper():
     return ImageGen("prompts.txt", "generated_images")
+
+def VideoGenWrapper():
+    return VideoGen("prompts.txt", "generated_images", "generated_videos")
 
 # ==== Execute the chain ====
 

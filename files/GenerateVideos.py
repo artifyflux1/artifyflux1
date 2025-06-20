@@ -171,7 +171,7 @@ def VideoGen(prompts_file: str, input_images_folder: str, output_videos_folder: 
             print(f"No <image_to_video_prompt> found for {tag}, skipping.")
             continue
 
-        user_prompt = prompt_elem.text.strip()
+        user_prompt_main = prompt_elem.text.strip()
 
         # Construct the negative user prompt
         negative_user_prompt_from_file = sentence_elem.find("image_to_video_negative_prompt")
@@ -191,7 +191,7 @@ def VideoGen(prompts_file: str, input_images_folder: str, output_videos_folder: 
 
         try:
             # Call the existing void function to generate and save the video
-            GenerateVideo(user_prompt, output_path)
+            GenerateVideo(user_prompt_main, user_negative_prompt, input_image_file_path, output_path)
         except Exception as e:
             # If any error occurs during video generation, abort
             print(f"Error generating video for {tag}: {e}")
