@@ -77,25 +77,19 @@ def CopyVideo(output_video_path):
 
 def print_exit_node_country():
     """
-    Prints the current Tor exit node IP and its country using ip-api.com.
-    More reliable for use with Tor exit nodes.
+    Prints the current Tor exit node IP and its country using ipinfo.io.
     """
     try:
-        response = requests.get("http://ip-api.com/json", timeout=10,
+        response = requests.get("https://ipinfo.io/json", timeout=10,
                                 proxies={
                                     "http": "socks5h://127.0.0.1:9050",
                                     "https": "socks5h://127.0.0.1:9050"
                                 })
-
         data = response.json()
-
-        ip = data.get("query", "Unknown")
+        ip = data.get("ip", "Unknown")
         country = data.get("country", "Unknown")
-        country_code = data.get("countryCode", "Unknown")
-
         print(f"🌐 Current Tor exit node IP: {ip}")
-        print(f"🗺️  Exit node country: {country} ({country_code})")
-
+        print(f"🗺️  Exit node country: {country}")
     except Exception as e:
         print(f"❌ Failed to fetch exit node country: {e}")
 
