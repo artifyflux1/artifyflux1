@@ -66,3 +66,17 @@ def EnhanceVideo(input_video_path, output_video_path):
         # Clean up temporary directories
         shutil.rmtree(temp_dir, ignore_errors=True)
         shutil.rmtree(enhanced_dir, ignore_errors=True)
+
+def EnhanceVideos(input_videos_folder, output_videos_folder):
+    """
+    Enhances all MP4 videos in the input_videos_folder and saves them with the same name
+    in the output_videos_folder.
+    """
+    if not os.path.exists(output_videos_folder):
+        os.makedirs(output_videos_folder)
+
+    for filename in os.listdir(input_videos_folder):
+        if filename.endswith(".mp4") and filename.startswith("video_"):
+            input_path = os.path.join(input_videos_folder, filename)
+            output_path = os.path.join(output_videos_folder, filename)
+            EnhanceVideo(input_path, output_path)
