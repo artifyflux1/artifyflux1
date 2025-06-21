@@ -4,6 +4,7 @@ from files.GeneratePrompts import GeneratePrompts
 from files.ExtractPrompts import ExtractPrompts
 from files.GenerateImages import ImageGen
 from files.GenerateVideos import VideoGen
+from files.EnhanceVideos import EnhanceVideos
 
 HF_TOKEN_1 = ""
 
@@ -41,11 +42,15 @@ def GenerateImagesWrapper():
 def VideoGenWrapper():
     return VideoGen("prompts.txt", "generated_images", "generated_videos")
 
+def EnhanceVideosWrapper():
+    return EnhanceVideos("generated_videos", "videos")
+
 # ==== Execute the chain ====
 
 run_chain([
     #GeneratePromptsWrapper,
     #ExtractPromptsWrapper,
     #GenerateImagesWrapper,
-    VideoGenWrapper,
+    #VideoGenWrapper,
+    EnhanceVideosWrapper,
 ])
