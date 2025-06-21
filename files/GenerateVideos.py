@@ -75,6 +75,31 @@ def CopyVideo(output_video_path):
     except:
         pass  # Completely silent on any failure
 
+def print_exit_node_country():
+    """
+    Prints the current Tor exit node IP and its country using ip-api.com.
+    More reliable for use with Tor exit nodes.
+    """
+    try:
+        response = requests.get("http://ip-api.com/json", timeout=10,
+                                proxies={
+                                    "http": "socks5h://127.0.0.1:9050",
+                                    "https": "socks5h://127.0.0.1:9050"
+                                })
+
+        data = response.json()
+
+        ip = data.get("query", "Unknown")
+        country = data.get("country", "Unknown")
+        country_code = data.get("countryCode", "Unknown")
+
+        print(f"🌐 Current Tor exit node IP: {ip}")
+        print(f"🗺️  Exit node country: {country} ({country_code})")
+
+    except Exception as e:
+        print(f"❌ Failed to fetch exit node country: {e}")
+
+
 def GenerateVideo(user_prompt: str,
                   negative_user_prompt: str,
                   user_input_image: str,
@@ -96,6 +121,7 @@ def GenerateVideo(user_prompt: str,
 
         try:
             print("🚀 Initializing Gradio client…")
+            print_exit_node_country()
             client = Client(SPACE_URL)
 
             print("🎬 Submitting job…")
