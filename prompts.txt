@@ -1,27 +1,12 @@
 <visuals>
 <sentence_1>
-<image_generator_prompt>ancient library surrounded by broken pillars and scattered scrolls under a dark smoke filled sky, soldiers in armor holding flaming torches standing near burning wooden shelves, distant flames engulfing stone walls, cracked marble floor covered in ash and torn parchment fragments, chaotic atmosphere with flying embers and desperate figures fleeing</image_generator_prompt>
-<image_to_video_prompt>flames flicker and spread across wooden shelves, smoke curls upward and obscures the sky, soldiers march forward with torches, scrolls ignite and disintegrate into ash, embers float toward fleeing figures, distant explosions of fire erupt near harbor</image_to_video_prompt>
-<image_to_video_negative_prompt>explosions, glowing neon effects, modern buildings, flying machines, talking figures, floating objects, unrealistic physics, distorted faces, time travel elements, visible text on scrolls</image_to_video_negative_prompt>
-</sentence_1>
-<sentence_2>
-<image_generator_prompt>burning harbor at night with wooden ships engulfed in orange flames, soldiers dragging flaming debris toward stone shelves stacked with scrolls, dark ocean waves crashing against blackened docks, glowing embers rising into starless sky, desperate workers trying to extinguish fires with buckets of water</image_generator_prompt>
-<image_to_video_prompt>flames leap from ships to shelves, water splashes evaporate on contact with fire, embers swirl toward workers faces, waves crash against burning dock posts, smoke billows across moonlit sky</image_to_video_prompt>
-<image_to_video_negative_prompt>submarines, airplanes, modern boats, glowing weapons, magical effects, floating scrolls, cartoonish animation, unrealistic lighting, visible text on scrolls</image_to_video_negative_prompt>
-</sentence_2>
-<sentence_3>
-<image_generator_prompt>group of robed figures standing beside large pyre of scrolls on stone plaza, black smoke rising against gray sky, broken statues of philosophers lying in dust, frightened scribes watching from behind marble columns, official scroll burning decree nailed to wooden post</image_generator_prompt>
-<image_to_video_prompt>flames consume parchment stack, ash falls onto stone tiles, robed figures toss more scrolls into fire, smoke drifts toward watching scribes, decree paper flutters on nail</image_to_video_prompt>
-<image_to_video_negative_prompt>celestial events, glowing halos, floating people, modern architecture, visible text on decree, talking figures, unrealistic weather</image_to_video_negative_prompt>
-</sentence_3>
-<sentence_4>
 <image_generator_prompt>abandoned library ruins overgrown with vines, broken columns half-buried in sand, scattered scroll fragments lying among rubble, looters carrying stone tablets away, cracked stone busts buried in dirt, dry desert wind blowing dust across empty shelves</image_generator_prompt>
 <image_to_video_prompt>vines sway gently on ruined walls, dust particles drift across broken shelves, looters walk toward distant horizon carrying tablets, scroll fragments flutter on wind, sand covers ancient carvings</image_to_video_prompt>
 <image_to_video_negative_prompt>monsters, glowing artifacts, time travelers, modern vehicles, visible text on tablets, talking animals, unrealistic weather</image_to_video_negative_prompt>
-</sentence_4>
-<sentence_5>
+</sentence_1>
+<sentence_2>
 <image_generator_prompt>single ancient scroll fragment resting on moss-covered stone under moonlight, distant starry sky above overgrown ruins, faint glowing symbols on parchment, broken column silhouetted against horizon, quiet atmosphere with subtle wind movement</image_generator_prompt>
 <image_to_video_prompt>scroll edges flutter gently in breeze, moonlight glints off faint symbols, shadows stretch across ruins, distant stars twinkle softly, faint mist rises from moss</image_to_video_prompt>
 <image_to_video_negative_prompt>flames, people, animals, glowing text, sudden lighting changes, visible text on scroll, talking figures, unrealistic physics</image_to_video_negative_prompt>
-</sentence_5>
+</sentence_2>
 </visuals>
