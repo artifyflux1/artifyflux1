@@ -1,3 +1,4 @@
 # Ignore Python cache folders
 __pycache__/
 push.sh
+.venv/
