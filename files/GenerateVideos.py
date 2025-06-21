@@ -9,6 +9,7 @@ import random
 from stem import Signal
 from stem.control import Controller
 from gradio_client import Client, handle_file
+import xml.etree.ElementTree as ET
 
 # where Gradio dumps its temp videos (on your local root filesystem)
 TMP_DIR = os.path.join(os.path.sep, "tmp", "gradio")
